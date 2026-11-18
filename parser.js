@@ -74,6 +74,7 @@ function parseChat(raw) {
 const INTERROGATIVE = /^(who|what|when|where|why|how|which|whose|whom|is|are|am|was|were|do|does|did|can|could|will|would|shall|should|may|might|must|anybody|anyone|somebody|have|has|had)\b/i;
 
 const LEAD_IN = /^(ok|okay|so|but|btw|and|also|guys|important|wait|oh|ah|pls|please|hey|hi|hello|yah|yes|no|fine|lol|sha|abi|now|then|well|anyway)[\s,!.:\-]*/i;
+const TAG_QUESTION = /[,\s]\b(right|yeah|yes|correct|okay|ok|sure|agreed|true|noh|abi|no|or not|or what|isn't it|isnt it|aren't we|arent we|aren't they|arent they|sha|sef)\s*\??\s*$/i;
 
 function isQuestion(text) {
   if (/\?/.test(text)) return true;
@@ -83,7 +84,8 @@ function isQuestion(text) {
     if (!m) break;
     t = t.slice(m[0].length);
   }
-  return INTERROGATIVE.test(t);
+  if (INTERROGATIVE.test(t)) return true;
+  return TAG_QUESTION.test(String(text || "").trim());
 }
 
 function chatStats(messages) {

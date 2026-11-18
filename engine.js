@@ -5,13 +5,13 @@ const NEGATE = ["no", "nah", "nope", "not", "never", "cant", "can't", "cannot", 
 const FILLER = new Set(["lol", "lmao", "ok", "okay", "yes", "no", "👍", "😂", "💀", "🔥", "😭", "hmm", "oh", "ah", "nice", "cool", "k", "o", "na", "abi", "sha", "sef", "yah", "yep", "alright", "fine"]);
 const PRONOUN_OBJ = new Set(["it", "that", "this", "them", "those", "one", "something", "anything", "nothing", "some"]);
 
-const TASK_VERBS = "(bring|buy|get|send|make|do|write|draft|design|print|prepare|finish|complete|build|fix|call|ask|pay|submit|share|upload|collect|deliver|book|reserve|carry|fetch|download|edit|check|confirm|organise|organize|handle|sort|order|cook|clean|pick|open|close|present|rehearse|practise|practice)";
+const TASK_VERBS = "(bring|buy|get|send|make|do|write|draft|design|print|prepare|finish|complete|build|fix|call|ask|pay|submit|share|upload|collect|deliver|book|reserve|carry|fetch|download|edit|check|confirm|organise|organize|handle|sort|order|cook|clean|pick|open|close|present|rehearse|practise|practice|test|try|review|record|film|install|plan|schedule|email|scan|publish|deploy|host|register|update|pack|load|sign|measure|cut|sew|draw|paint|translate|invite|watch|attend|join)";
 const VERB_RE = new RegExp("\\b" + TASK_VERBS + "\\b", "i");
 const COMMIT_FIRST = new RegExp("\\b(i|i'll|ill|i will|im|i'm|i am|me|myself|my)\\b[^.]{0,18}\\b" + TASK_VERBS + "\\b", "i");
 const COMMIT_SELF = /\b(i'll|ill|i will|imma|i am going to|let me|leave it to me|i got this|i've got this|i can|on me|i will handle|i'm on it)\b/i;
 const UNOWNED_PAT = /\b(who|anyone|anybody|somebody|someone|which of us|we still need|we need|need someone|needs to be|who is going to|who's going to|who will|who can|who is)\b/i;
 const STRONG_DECISION = /\b(we are doing|we're doing|we are going with|we'll|we will|let's|lets|decided|the plan is|plan is|going with|we have chosen|we chose|settled|so it's|so its|final|we go with|we are going to|we're going to|we split|we meet|we start)\b/i;
-const CHANGE_PAT = /\b(instead|moved to|move to|moving to|changed to|change to|changing to|now it's|now its|no longer|cancel(l)?ed|postpone(d)?|reschedule(d)?|push(ed)? (it )?to|actually make it|correction|update:|shift(ed)? to|rather than)\b/i;
+const CHANGE_PAT = /\b(instead|moved to|move to|moving to|changed to|change to|changing to|now it's|now its|no longer|cancel(l)?ed|postpone(d)?|reschedule(d)?|push(ed)? (it )?to|actually make it|correction|update:|shift(ed)? to|rather than|(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow|tonight|this weekend|\d{1,2}(?:am|pm)|\d{1,2}:\d{2})[\s,]*\bnot\b\s+)\b/i;
 const LEAD_JUNK = /^(ok|okay|so|and|also|btw|guys|fine|then|well|please|pls|yeah|yah|yes|no|alright|cool|now|oh|ah|wait|important|anyway|sha|abi)\b[\s,!.:-]*/i;
 const LEAD_TIME = /^(today|tonight|tomorrow|tmr|tmrw|monday|mon|tuesday|tue|wednesday|wed|thursday|thu|thur|thurs|friday|fri|saturday|sat|sunday|sun|next week|this weekend|later|now|asap|\d{1,2}(am|pm)|\d{1,2}:\d{2})\b[\s,!.:-]*/i;
 const REFUSAL = /\b(cant|can't|cannot|won't|wont|unable|not able|i'm busy|i am busy|no time|im busy|i dey busy|not around|i'm not|im not)\b/i;
@@ -231,7 +231,7 @@ function extractQuestions(messages, names) {
     }
     if (!answered) {
       const qt = tokenize(q.text);
-      const workish = /\b(who|when|where|how much|budget|price|pricing|bring|buy|send|make|do|poster|prototype|slides|script|demo|meet|time|cost|pay|print|design|extension|regulator)\b/i.test(q.text) || type === "who" || type === "when" || type === "howmuch" || type === "where";
+      const workish = /\b(who|when|where|how much|budget|price|pricing|bring|buy|send|make|do|poster|prototype|slides|script|demo|meet|time|cost|pay|print|design|extension|regulator|video|record|submit|deadline|test|share|logo|thumbnail|domain|hosting|rehearsal|tonight|tomorrow|weekend|free|available|ready)\b/i.test(q.text) || type === "who" || type === "when" || type === "howmuch" || type === "where";
       out.push({
         question: q.text.replace(/\s+/g, " ").slice(0, 220),
         asked_by: q.author, asked_at: fmt(q.tsMs), tsMs: q.tsMs, type: type,
