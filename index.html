@@ -35,18 +35,23 @@
 
 <div id="settings" class="settings" hidden>
   <label class="field">
-    <span>API key <em>(optional — leave blank to run offline demo mode)</em></span>
-    <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off">
+    <span>API key <em>(optional — Decided works fully without one)</em></span>
+    <input id="apiKey" type="password" placeholder="xai-... or sk-..." autocomplete="off">
   </label>
+  <div class="presetbar">
+    <button id="grokBtn" class="ghost tiny" type="button">⚡ Use my Grok</button>
+    <button id="openaiBtn" class="ghost tiny" type="button">OpenAI</button>
+    <span class="note">presets fill endpoint + model</span>
+  </div>
   <label class="field">
-    <span>Endpoint <em>(Anakin AI or any OpenAI-compatible URL)</em></span>
+    <span>Endpoint <em>(any OpenAI-compatible URL)</em></span>
     <input id="apiBase" type="text" value="https://api.openai.com/v1/chat/completions" autocomplete="off">
   </label>
   <label class="field">
     <span>Model</span>
     <input id="apiModel" type="text" value="gpt-4o-mini" autocomplete="off">
   </label>
-  <p class="note">🔒 Your chat is parsed in this browser. Nothing is stored, no database, no training. The only network call is the analysis request itself.</p>
+  <p class="note">🔒 Your chat is parsed in this browser and never stored. Without a key, everything runs offline. With a key, the only things that leave your device are the analysis request and reply drafts — sent straight to your provider, or relayed once through Decided's edge function if the provider blocks browser calls. Key is kept in this browser only.</p>
 </div>
 
 <main id="main">
@@ -84,6 +89,25 @@
     </div>
 
     <div class="proof" id="proofStrip" role="group" aria-label="What Decided found, in numbers"></div>
+
+    <section class="block reply" id="replyBlock">
+      <h3>🪽 Waiting on you <span class="pill" id="needsCount">0</span></h3>
+      <div class="youpick" id="youPick" role="group" aria-label="Who are you in this chat"></div>
+      <ul id="needsList" class="needs"></ul>
+      <div class="draftwrap" id="draftWrap" hidden>
+        <div class="draft" id="replyDraft" aria-live="polite"></div>
+        <div class="draftbar">
+          <button id="copyReply" class="tiny" type="button">⧉ Copy reply</button>
+          <button id="redraftBtn" class="ghost tiny" type="button">↻ Redraft</button>
+          <span class="draftnote" id="draftNote"></span>
+        </div>
+      </div>
+      <div class="replybar">
+        <button id="draftBtn" type="button">✍ Draft my reply in my voice</button>
+        <span class="replynote" id="replyNote"></span>
+      </div>
+      <p class="finenote">Decided writes the reply. Sending stays your tap — no app can post into WhatsApp without your phone, and nothing should go out unnamed.</p>
+    </section>
 
     <article class="receipt" id="receipt">
       <div class="receipt-top">

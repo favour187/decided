@@ -17,6 +17,16 @@ A summariser tells you what was said. Decided tells you what wasn't.
 
 Every finding links to the exact message, sender and timestamp. Nothing is asserted without its receipt.
 
+## Waiting on you
+
+Decided also works backwards from one question: **what is waiting on you?**
+
+Pick your name in the chat and it lists, in order of urgency: questions that name you and got no usable answer, tasks of yours that are overdue, plan changes you never acknowledged, tasks nobody claimed, money you owe, and the questions the whole group is stuck on.
+
+Add any OpenAI-compatible key — Grok included, one tap with the **⚡ Use my Grok** preset — and Decided drafts the reply **in your voice**: it feeds the model about 25 of your old messages as style samples plus the last 40 messages of context, and writes one message that covers everything waiting on you. Copy, check, send.
+
+Decided never sends anything anywhere on your behalf. No app can post into WhatsApp without your phone, and nothing should go out into a group chat unnamed.
+
 ## No AI required
 
 The whole analysis engine is deterministic code running in your browser. There is no API key, no account, no database, no upload and no tracking. Paste a chat and it works offline.
@@ -56,6 +66,7 @@ Multi-line messages are stitched back together, system messages and media placeh
 | `engine.js` | The analysis engine: questions, tasks, decisions, changes, money, risk |
 | `data.js` | A demo chat for testing without your own data |
 | `app.js` | UI, rendering, exports, optional AI mode |
+| `functions/ai-proxy.js` | Optional edge relay, used only if a provider blocks browser calls. Allowlisted endpoints, stores nothing |
 
 ## Accessibility
 

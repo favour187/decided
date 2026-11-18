@@ -24,6 +24,23 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#sizeToggle").addEventListener("click", () => toggleBody("big", $("#sizeToggle"), "A+ Larger text", "A– Default text", "Larger text on"));
   $("#motionToggle").addEventListener("click", () => toggleBody("still", $("#motionToggle"), "✦ Reduce motion", "✦ Motion allowed", "Motion reduced"));
   $("#settingsBtn").addEventListener("click", toggleSettings);
+  restoreSettings();
+  ["apiKey", "apiBase", "apiModel"].forEach((id) => $("#" + id).addEventListener("change", persistSettings));
+  $("#grokBtn").addEventListener("click", () => {
+    $("#apiBase").value = "https://api.x.ai/v1/chat/completions";
+    $("#apiModel").value = "grok-4-1-fast-reasoning";
+    persistSettings();
+    toast("Grok preset set — paste your xAI key above");
+    $("#apiKey").focus();
+  });
+  $("#openaiBtn").addEventListener("click", () => {
+    $("#apiBase").value = "https://api.openai.com/v1/chat/completions";
+    $("#apiModel").value = "gpt-4o-mini";
+    persistSettings();
+  });
+  $("#draftBtn").addEventListener("click", draftReply);
+  $("#redraftBtn").addEventListener("click", draftReply);
+  $("#copyReply").addEventListener("click", copyReplyText);
 
   ["dragenter", "dragover"].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); $("#drop").classList.add("over"); }));
   ["dragleave", "drop"].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); $("#drop").classList.remove("over"); }));
@@ -52,23 +69,38 @@ async function run(raw) {
   showLoading(parsed.messages.length);
   if (parsed.messages.length > 500) revealCapybara(parsed.messages.length);
 
+  const t0 = now();
   const key = $("#apiKey").value.trim();
-  if (key) {
-    try {
-      state.analysis = await analyseLive(parsed.messages, key);
-      state.mode = "live";
-    } catch (err) {
+  try {
+    if (key) {
+      try {
+        state.analysis = await analyseLive(parsed.messages, key);
+        state.mode = "live";
+      } catch (err) {
+        state.analysis = analyse(parsed.messages);
+        state.mode = "engine";
+        toast("AI unavailable (" + err.message + ") — used the built-in engine instead");
+      }
+    } else {
+      await nextPaint();
       state.analysis = analyse(parsed.messages);
       state.mode = "engine";
-      toast("AI unavailable (" + err.message + ") — used the built-in engine instead");
     }
-  } else {
-    await fakeDelay(500);
-    state.analysis = analyse(parsed.messages);
-    state.mode = "engine";
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    toast("Analysis hit a snag on this file: " + err.message);
+    return;
   }
+  state.ms = Math.round((now() - t0) * 10) / 10;
   hideLoading();
   render();
+}
+
+function now() { return (window.performance || Date).now(); }
+
+function nextPaint() {
+  return new Promise((r) => requestAnimationFrame(() => setTimeout(r, 30)));
 }
 
 async function analyseLive(messages, key) {
@@ -94,9 +126,10 @@ function render() {
   $("#inputPanel").hidden = true;
   $("#resultsPanel").hidden = false;
   $("#projectName").textContent = a.project || "Your group chat";
-  $("#chatMeta").textContent = s.total + " messages · " + s.volume + " · " + s.participants.length + " people · " + s.daySpan + " days · dates read as " + (a.dateOrder === "MDY" ? "MM/DD/YY" : "DD/MM/YY") + (state.mode === "live" ? " · AI mode" : " · analysed in your browser, nothing uploaded");
+  $("#chatMeta").textContent = s.total + " messages · " + s.volume + " · " + s.participants.length + " people · " + s.daySpan + " days · dates read as " + (a.dateOrder === "MDY" ? "MM/DD/YY" : "DD/MM/YY") + " · read in " + (state.ms < 1000 ? state.ms + "ms" : (state.ms / 1000).toFixed(1) + "s") + (state.mode === "live" ? " · AI mode" : " · analysed in your browser, nothing uploaded");
   $("#receiptId").textContent = "RCPT-" + hash(state.raw).toUpperCase();
   renderProof(a, s);
+  renderReply(a, s);
   renderRecap(a);
   renderRisks(a);
   renderOpen(a);
@@ -381,3 +414,171 @@ function toast(msg) {
 function fakeDelay(ms) { return new Promise((r) => setTimeout(r, ms)); }
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function hash(str) { let h = 0; for (let i = 0; i < str.length; i++) { h = (h << 5) - h + str.charCodeAt(i); h |= 0; } return Math.abs(h).toString(16).padStart(6, "0").slice(0, 6); }
+
+function restoreSettings() {
+  try {
+    const k = localStorage.getItem("decided.key");
+    const b = localStorage.getItem("decided.base");
+    const m = localStorage.getItem("decided.model");
+    if (k) $("#apiKey").value = k;
+    if (b) $("#apiBase").value = b;
+    if (m) $("#apiModel").value = m;
+  } catch (err) {
+    console.warn("settings not restored", err && err.message);
+  }
+}
+
+function persistSettings() {
+  try {
+    localStorage.setItem("decided.key", $("#apiKey").value.trim());
+    localStorage.setItem("decided.base", $("#apiBase").value.trim());
+    localStorage.setItem("decided.model", $("#apiModel").value.trim());
+  } catch (err) {
+    console.warn("settings not saved", err && err.message);
+  }
+}
+
+function renderReply(a, s) {
+  const parts = (s && s.participants) || [];
+  if (!parts.length) return;
+  const names = parts.map((p) => p.name);
+  let saved = null;
+  try { saved = localStorage.getItem("decided.you"); } catch (err) { saved = null; }
+  if (!state.you || names.indexOf(state.you) === -1) {
+    state.you = saved && names.indexOf(saved) !== -1 ? saved : parts[0].name;
+  }
+  const pick = $("#youPick");
+  pick.innerHTML = "";
+  const lab = document.createElement("span");
+  lab.className = "ylab";
+  lab.textContent = "You in this chat:";
+  pick.appendChild(lab);
+  names.forEach((n) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "youchip";
+    b.textContent = n + (n === state.you ? " ✓" : "");
+    b.setAttribute("aria-pressed", String(n === state.you));
+    b.addEventListener("click", () => {
+      state.you = n;
+      try { localStorage.setItem("decided.you", n); } catch (err) { console.warn(err); }
+      $("#draftWrap").hidden = true;
+      state.draft = "";
+      renderReply(state.analysis, state.stats);
+    });
+    pick.appendChild(b);
+  });
+  const needs = needsFor(a, state.you);
+  state.needs = needs;
+  $("#needsCount").textContent = needs.length;
+  const ul = $("#needsList");
+  ul.innerHTML = "";
+  if (!needs.length) {
+    const li = document.createElement("li");
+    li.textContent = "Nothing is waiting on you. Rare group. Enjoy it.";
+    ul.appendChild(li);
+  }
+  needs.forEach((n) => {
+    const li = document.createElement("li");
+    li.className = "k-" + n.kind;
+    li.textContent = n.text;
+    ul.appendChild(li);
+  });
+  const key = $("#apiKey").value.trim();
+  $("#replyNote").textContent = key
+    ? "Sends about 25 of your old messages as voice samples, plus the last 40 messages of context. Nothing else."
+    : "Works without any key. Add your Grok key under ⚙ AI and Decided will write the reply in your exact voice.";
+  $("#draftBtn").textContent = key ? "✍ Draft my reply in my voice" : "✍ Draft my reply in my voice (add a key under ⚙ AI)";
+}
+
+async function draftReply() {
+  const key = $("#apiKey").value.trim();
+  if (!key) {
+    toggleSettings();
+    toast("Paste your Grok key under ⚙ AI first — tap ⚡ Use my Grok");
+    return;
+  }
+  const needs = state.needs || [];
+  if (!needs.length) { toast("Nothing is waiting on you right now"); return; }
+  const you = state.you;
+  const voice = state.messages.filter((m) => m.author === you && !m.media).slice(-25).map((m) => m.text.replace(/\n+/g, " ").slice(0, 200));
+  const recent = state.messages.slice(-40).map((m) => m.author + ": " + m.text.replace(/\n+/g, " ").slice(0, 200));
+  const system = "You write WhatsApp replies AS " + you + ", one member of this group. Copy their exact style from the VOICE SAMPLES: casing, punctuation, abbreviations, Nigerian English or pidgin if present, emoji habits, typical message length. Output ONE reply message only: plain text, at most 3 sentences, no quotation marks, no explanation, no hashtags. Cover every numbered NEED using only facts already present in the chat. If you commit to doing something, say when.";
+  const user = "VOICE SAMPLES (" + you + "):\n" + voice.join("\n") + "\n\nRECENT CHAT:\n" + recent.join("\n") + "\n\nNEEDS A REPLY FROM " + you + ":\n" + needs.map((n, i) => (i + 1) + ". " + n.text).join("\n");
+  const btn = $("#draftBtn");
+  btn.disabled = true;
+  $("#draftNote").textContent = "reading the room…";
+  try {
+    const text = await callModel(key, system, user);
+    state.draft = text.trim();
+    $("#draftWrap").hidden = false;
+    const box = $("#replyDraft");
+    box.innerHTML = "";
+    const tag = document.createElement("span");
+    tag.className = "dtag";
+    tag.textContent = "as " + you + " — check it, then send";
+    const body = document.createElement("span");
+    body.textContent = state.draft;
+    box.append(tag, body);
+    $("#draftNote").textContent = "drafted by " + ($("#apiModel").value.trim() || "your model");
+  } catch (err) {
+    $("#draftNote").textContent = "";
+    toast("Draft failed: " + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function callModel(key, system, user) {
+  const base = $("#apiBase").value.trim() || "https://api.openai.com/v1/chat/completions";
+  const model = $("#apiModel").value.trim() || "gpt-4o-mini";
+  const messages = [{ role: "system", content: system }, { role: "user", content: user }];
+  let res;
+  try {
+    res = await fetch(base, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
+      body: JSON.stringify({ model: model, temperature: 0.4, messages: messages }),
+    });
+  } catch (netErr) {
+    res = await fetch("/ai-proxy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ base: base, model: model, key: key, messages: messages }),
+    });
+    if (!res.ok) throw new Error("provider blocked the browser and the relay answered HTTP " + res.status);
+    const d = await res.json();
+    return (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "";
+  }
+  if (!res.ok) throw new Error("HTTP " + res.status + " from your provider");
+  const d = await res.json();
+  return (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "";
+}
+
+function copyReplyText() {
+  const t = state.draft || "";
+  if (!t) { toast("Nothing to copy yet"); return; }
+  const done = () => toast("Reply copied — paste it into WhatsApp");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(done, () => fallbackCopy(t, done));
+  } else {
+    fallbackCopy(t, done);
+  }
+}
+
+function fallbackCopy(t, done) {
+  const ta = document.createElement("textarea");
+  ta.value = t;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand("copy");
+    done();
+  } catch (err) {
+    toast("Copy blocked — long-press the draft instead");
+  }
+  document.body.removeChild(ta);
+}

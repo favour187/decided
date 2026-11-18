@@ -540,3 +540,42 @@ function searchChat(messages, query) {
   }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 4)
     .map((x) => Object.assign(ev(x.m), { score: Math.round(x.score * 100) / 100 }));
 }
+
+function escRe(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function needsFor(a, you) {
+  const out = [];
+  const has = !!you;
+  const youRe = has ? new RegExp("\\b" + escRe(you) + "\\b", "i") : null;
+  (a.open_questions || []).filter((q) => q.priority >= 2).forEach((q) => {
+    const namesYou = has && youRe.test(q.question);
+    out.push({
+      kind: namesYou ? "you" : "group",
+      text: q.asked_by + " asked \u201C" + q.question.replace(/\s+/g, " ").slice(0, 100) + "\u201D at " + q.asked_at + " \u2014 no usable answer yet" + (namesYou ? ". It names you" : "") + ".",
+    });
+  });
+  (a.action_items || []).filter((t) => !t.owner).forEach((t) => {
+    out.push({ kind: "claim", text: "Nobody claimed \u201C" + t.task + "\u201D \u2014 claim it or name someone." });
+  });
+  (a.plan_changes || []).forEach((c) => {
+    if (has && (c.not_acknowledged || []).indexOf(you) !== -1) {
+      out.push({ kind: "ack", text: "You never responded to \u201C" + String(c.to || c.what).replace(/\s+/g, " ").slice(0, 90) + "\u201D (" + c.when + ") \u2014 confirm it or object." });
+    }
+  });
+  (a.action_items || []).forEach((t) => {
+    if (has && t.owner === you && t.dueMs && t.dueMs <= Date.now() && t.status !== "done") {
+      out.push({ kind: "due", text: "Your task \u201C" + t.task + "\u201D was due " + t.due + "." });
+    }
+  });
+  if (a.money && a.money.balances && has) {
+    const bal = a.money.balances.find((b) => b.person === you);
+    const cred = a.money.balances.slice().sort((x, y) => y.net - x.net)[0];
+    if (bal && bal.net < 0) {
+      out.push({ kind: "money", text: "You owe " + a.money.currency + Math.abs(bal.net).toLocaleString("en-US") + " \u2014 " + cred.person + " is out of pocket " + a.money.currency + cred.net.toLocaleString("en-US") + "." });
+    }
+  }
+  const rank = { you: 0, due: 1, ack: 2, claim: 3, money: 4, group: 5 };
+  return out.sort((x, y) => rank[x.kind] - rank[y.kind]).slice(0, 8);
+}
