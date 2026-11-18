@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Decided — receipts for your group chat</title>
+<meta name="description" content="Paste your group chat. Get what was decided, who owns what, and what was asked but never answered.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a1714'/%3E%3Cellipse cx='30' cy='42' rx='19' ry='13' fill='%23a9744f'/%3E%3Cellipse cx='45' cy='33' rx='12' ry='10' fill='%23b98259'/%3E%3Ccircle cx='20' cy='29' r='4.5' fill='%238a5c3b'/%3E%3Ccircle cx='49' cy='30' r='2.2' fill='%23241a12'/%3E%3Cellipse cx='55' cy='36' rx='4.5' ry='3.2' fill='%238a5c3b'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to results</a>
+
+<header class="top">
+  <div class="brand">
+    <span class="mark" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="30" height="30"><rect width="64" height="64" rx="14" fill="#241d16"/><ellipse cx="30" cy="42" rx="19" ry="13" fill="#a9744f"/><ellipse cx="45" cy="33" rx="12" ry="10" fill="#b98259"/><circle cx="20" cy="29" r="4.5" fill="#8a5c3b"/><circle cx="49" cy="30" r="2.2" fill="#241a12"/><ellipse cx="55" cy="36" rx="4.5" ry="3.2" fill="#8a5c3b"/></svg>
+    </span>
+    <span class="wordmark">Decided</span>
+    <span class="tagline">receipts for your group chat</span>
+  </div>
+  <div class="controls">
+    <button id="settingsBtn" class="ghost" type="button" aria-expanded="false" aria-controls="settings">⚙ AI</button>
+  </div>
+</header>
+
+<div class="a11y" role="group" aria-label="Accessibility options">
+  <span class="a11y-label">♿ Accessibility</span>
+  <button id="fontToggle" class="ghost tiny" type="button" aria-pressed="false">Aa Easy&nbsp;read</button>
+  <button id="contrastToggle" class="ghost tiny" type="button" aria-pressed="false">◐ High&nbsp;contrast</button>
+  <button id="sizeToggle" class="ghost tiny" type="button" aria-pressed="false">A+ Larger&nbsp;text</button>
+  <button id="motionToggle" class="ghost tiny" type="button" aria-pressed="false">✦ Reduce&nbsp;motion</button>
+  <span class="a11y-note">Works keyboard-only — Tab to move, Enter to act. Every answer can be read aloud by a screen reader.</span>
+</div>
+
+<div id="settings" class="settings" hidden>
+  <label class="field">
+    <span>API key <em>(optional — leave blank to run offline demo mode)</em></span>
+    <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off">
+  </label>
+  <label class="field">
+    <span>Endpoint <em>(Anakin AI or any OpenAI-compatible URL)</em></span>
+    <input id="apiBase" type="text" value="https://api.openai.com/v1/chat/completions" autocomplete="off">
+  </label>
+  <label class="field">
+    <span>Model</span>
+    <input id="apiModel" type="text" value="gpt-4o-mini" autocomplete="off">
+  </label>
+  <p class="note">🔒 Your chat is parsed in this browser. Nothing is stored, no database, no training. The only network call is the analysis request itself.</p>
+</div>
+
+<main id="main">
+
+  <section class="panel" id="inputPanel" aria-labelledby="inputHeading">
+    <h1 id="inputHeading">What did we actually decide?</h1>
+    <p class="lede">A summariser tells you what was <strong>said</strong>. Decided tells you what <strong>wasn't</strong> — the decision nobody wrote down, the task nobody claimed, the question nobody answered.</p>
+
+    <div class="drop" id="drop">
+      <label class="ta-wrap" for="chatInput">
+        <span class="sr-only">Paste your group chat</span>
+        <textarea id="chatInput" rows="9" spellcheck="false"
+          placeholder="Paste the whole group chat here…&#10;&#10;Works with a real WhatsApp export (⋮ → More → Export chat → Without media) — both formats:&#10;  [17/11/2026, 16:04:12] Chidera: ok so we have 3 days&#10;  17/11/2026, 16:04 - Chidera: ok so we have 3 days"></textarea>
+      </label>
+      <div class="actions">
+        <input type="file" id="fileInput" accept=".txt,text/plain" class="sr-only">
+        <label for="fileInput" class="btn secondary">📄 Upload .txt export</label>
+        <button id="demoBtn" class="btn secondary" type="button">🦫 Load the demo chat</button>
+        <button id="analyseBtn" class="btn primary" type="button">Untangle it →</button>
+      </div>
+    </div>
+    <p class="hint" id="inputHint">Or drop a WhatsApp export file anywhere on this page.</p>
+  </section>
+
+  <section class="panel results" id="resultsPanel" hidden>
+
+    <div class="results-head">
+      <div>
+        <h2 id="projectName">—</h2>
+        <p class="meta" id="chatMeta">—</p>
+      </div>
+      <div class="results-actions">
+        <button id="againBtn" class="ghost" type="button">↺ New chat</button>
+      </div>
+    </div>
+
+    <div class="proof" id="proofStrip" role="group" aria-label="What Decided found, in numbers"></div>
+
+    <article class="receipt" id="receipt">
+      <div class="receipt-top">
+        <span class="receipt-label">RECAP — paste this back into the group</span>
+        <button id="copyRecap" class="ghost tiny" type="button">⧉ Copy</button>
+      </div>
+      <ul id="recapList"></ul>
+      <div class="receipt-foot">
+        <button id="icsBtn" class="ghost tiny" type="button">📅 Download deadlines (.ics)</button>
+        <span class="receipt-id" id="receiptId">—</span>
+      </div>
+      <div class="zig" aria-hidden="true"></div>
+    </article>
+
+    <section class="block" id="risksBlock">
+      <h3>⚠ What will bite you</h3>
+      <ul id="risksList" class="risks"></ul>
+    </section>
+
+    <section class="block highlight" id="openBlock">
+      <h3>❓ Asked &amp; never answered <span class="pill" id="openCount">0</span></h3>
+      <p class="block-sub">The part a summariser will never show you. These are live gaps in the plan.</p>
+      <ul id="openList" class="cards"></ul>
+    </section>
+
+    <section class="block" id="actionsBlock">
+      <h3>✅ Who's doing what</h3>
+      <div class="table-wrap">
+        <table id="actionsTable">
+          <thead><tr><th scope="col">Task</th><th scope="col">Owner</th><th scope="col">Due</th><th scope="col">Proof</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="block" id="loadBlock">
+      <h3>⚖ Who's carrying the group</h3>
+      <p class="block-sub">Share of <em>claimed work</em>, not messages. Nobody has to accuse anybody — the bar says it.</p>
+      <div id="loadChart" class="load"></div>
+    </section>
+
+    <section class="block" id="decisionsBlock">
+      <h3>📌 Decisions on the record</h3>
+      <ul id="decisionsList" class="cards"></ul>
+    </section>
+
+    <section class="block" id="changesBlock">
+      <h3>🔀 The plan changed — did everyone notice?</h3>
+      <ul id="changesList" class="cards"></ul>
+    </section>
+
+    <section class="block ask" id="askBlock">
+      <h3>🔎 Ask the chat</h3>
+      <p class="block-sub">It answers with the receipt — the exact message, sender and time.</p>
+      <form id="askForm" class="ask-form">
+        <label class="sr-only" for="askInput">Ask a question about this chat</label>
+        <input id="askInput" type="text" placeholder="who's bringing the extension box?" autocomplete="off">
+        <button class="btn primary" type="submit">Ask</button>
+      </form>
+      <div id="askChips" class="chips"></div>
+      <div id="askAnswer" class="answer" hidden></div>
+    </section>
+
+    <footer class="foot">
+      <p>Built for TripleH 2026 · theme: <strong>productivity</strong> · parsed in-browser, never stored · AI by <strong>Anakin</strong> · hosted on <strong>.xyz</strong></p>
+      <p class="capy" id="capyFoot">🦫</p>
+    </footer>
+  </section>
+
+  <div id="capySecret" class="capy-secret" hidden role="status">
+    <span class="big-capy" aria-hidden="true">🦫</span>
+    <p><strong>Somebody had to sort this out.</strong> <span id="capyCount"></span></p>
+  </div>
+
+  <div id="loading" class="loading" hidden role="status" aria-live="assertive">
+    <span class="spin" aria-hidden="true"></span>
+    <p id="loadingText">Reading 400 messages so you don't have to…</p>
+  </div>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="parser.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
