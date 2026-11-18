@@ -119,9 +119,15 @@
       </div>
     </section>
 
+    <section class="block" id="moneyBlock">
+      <h3>💰 Money mentioned</h3>
+      <p class="block-sub">Every amount in the chat, who said it, and who owes what — computed by code, not guessed.</p>
+      <div id="moneyBox"></div>
+    </section>
+
     <section class="block" id="loadBlock">
       <h3>⚖ Who's carrying the group</h3>
-      <p class="block-sub">Share of <em>claimed work</em>, not messages. Nobody has to accuse anybody — the bar says it.</p>
+      <p class="block-sub">Weighted by claimed tasks and words written. Nobody has to accuse anybody — the bar says it.</p>
       <div id="loadChart" class="load"></div>
     </section>
 
@@ -167,6 +173,7 @@
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="parser.js"></script>
+<script src="engine.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>

@@ -55,6 +55,7 @@ function parseChat(raw) {
         time: parsed.timeStr,
         author: parsed.author,
         text: parsed.text,
+        isQuestion: isQuestion(parsed.text),
         media: /<media omitted>|image omitted|video omitted|sticker omitted|audio omitted|gif omitted|document omitted/i.test(parsed.text),
         idx: messages.length
       });
@@ -91,7 +92,6 @@ function chatStats(messages) {
   const dayCounts = new Map;
   for (const m of messages) {
     byAuthor.set(m.author, (byAuthor.get(m.author) || 0) + 1);
-    m.isQuestion = isQuestion(m.text);
     if (m.isQuestion) questions++;
     if (m.media) media++;
     const h = parseInt((m.time.split(":")[0] || "0").replace(/^0/, ""), 10);
